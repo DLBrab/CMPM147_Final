@@ -20,6 +20,7 @@ function p3_setup() {}
 
 let worldSeed;
 
+
 function p3_worldKeyChanged(key) {
   worldSeed = XXH.h32(key, 0);
   noiseSeed(worldSeed);
@@ -44,38 +45,47 @@ function p3_tileClicked(i, j) {
 }
 
 function p3_drawBefore() {}
-//fill(noise(i, j) * 255)
-function p3_drawTile(i, j) {
+
+function p3_drawTile(i, j, type, color) {
   noStroke();
-  let noi = noise(i, j)
-  if (noi < 0.4) noi = 0.4
-  let n = clicks[[i, j]] | 0;
-  let nIP = clicks[[i + 1, j]] | 0;
-  let nIM = clicks[[i - 1, j]] | 0;
-  let nJP = clicks[[i, j + 1]] | 0;
-  let nJM = clicks[[i, j - 1]] | 0;
-
-  if (nIP % 2 == 1 || nIM % 2 == 1 || nJP % 2 == 1 || nJM % 2 == 1) {
-    fill(255, noi * 255, 0, noi * 180);
-  }
-  else{
-    fill(0, noi * 255, 0)
-  }
-  if (n % 2 == 1 ) {
-    fill(0, noi * 40, noi * 255)
-  }
-  
-
+  fill(color);
   push();
+  translate(i, j)
+  switch (type) {
+    case 1:
+      draw_air(i, j)
+      break;
+    case 2: 
+      draw_ground_level_tile()
+      break;
+    case 3: 
+      //draw_window_off() 
+      break;
+    case 4: 
+      //draw_window_on()
+      break;
+  }
 
+  pop();
+}
+
+function draw_air(i, j) {
+  noFill();
   beginShape();
   vertex(0, 0);
   vertex(0, tw);
   vertex(th, tw);
   vertex(th, 0);
   endShape(CLOSE);
+}
 
-  pop();
+function draw_ground_level_tile(i, j) {
+  beginShape();
+  vertex(0, 0);
+  vertex(0, tw);
+  vertex(th, tw);
+  vertex(th, 0);
+  endShape(CLOSE);
 }
 
 function p3_drawSelectedTile(i, j) {

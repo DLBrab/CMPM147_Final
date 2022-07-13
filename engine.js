@@ -10,7 +10,19 @@ let tile_rows;
 let camera_velocity;
 let camera_offset;
 
+let concrete;
+let concrete_Midnight;
+let concrete_Noon;
+let sky;
+let sky_Midnight;
+let sky_Day;
+
 function setup() {
+  sky_Day = color(145, 213, 255);
+  sky_Midnight = color(16, 3, 28);
+  concrete_Midnight = color(18, 14, 30)
+  concrete_Noon = color(100, 100, 100)
+
   camera_offset = new p5.Vector(0, 0);
   camera_velocity = new p5.Vector(0, 0);
 
@@ -52,6 +64,25 @@ function cameraToWorldOffset([camera_x, camera_y]) {
   return { x: Math.round(world_x), y: Math.round(world_y) };
 }
 
+function drawTime(time) {
+  // Afternoon handler
+  let gradiantRatio;
+  if (time[0] >= 12) {
+    time[0] -= 12
+    gradiantRatio = (time[0] * 60 + time[1]) / 719 // 719 is the maximum value the numerator can produce
+    concrete = lerpColor(concrete_Noon, concrete_Midnight, gradiantRatio);
+    sky = lerpColor(sky_Day, sky_Midnight, gradiantRatio);
+  }
+  // Morning handler
+  else{
+    gradiantRatio = (time[0] * 60 + time[1]) / 719 // 719 is the maximum value the numerator can produce
+    concrete = lerpColor(concrete_Midnight, concrete_Noon, gradiantRatio);
+    sky = lerpColor(sky_Midnight, sky_Day, gradiantRatio);
+  }
+
+  return sky;
+}
+
 function draw() {
   // Keyboard controls!
   if (keyIsDown(LEFT_ARROW)) {
@@ -59,12 +90,6 @@ function draw() {
   }
   if (keyIsDown(RIGHT_ARROW)) {
     camera_velocity.x += 1;
-  }
-  if (keyIsDown(DOWN_ARROW)) {
-    camera_velocity.y += 1;
-  }
-  if (keyIsDown(UP_ARROW)) {
-    camera_velocity.y -= 1;
   }
 
   let camera_delta = new p5.Vector(0, 0);
@@ -79,24 +104,49 @@ function draw() {
     [mouseX, mouseY],
     [camera_offset.x, camera_offset.y]
   );
-  let world_offset = cameraToWorldOffset([camera_offset.x, camera_offset.y]);
 
-  background(0);
+  let world_offset_foreground = cameraToWorldOffset([camera_offset.x/3, camera_offset.y/3]);
+  let world_offset_midground = cameraToWorldOffset([camera_offset.x/2, camera_offset.y/2]);
+  let world_offset_background = cameraToWorldOffset([2*camera_offset.x/3, 2*camera_offset.y/3]);
+
+  
 
   if (window.p3_drawBefore) {
     window.p3_drawBefore();
   }
 
+  let height;
+  let tiletype;
+  let time = [hour(), minute()]
+  drawTime(time)
+  background(sky); // Draws the background with the color of the sky set by the drawTime function
+
   for (let y = 0; y < tile_rows; y++) {
     for (let x = 0; x < tile_columns; x++) {
-      drawTile([x + world_offset.x, y + world_offset.y], [
-        camera_offset.x,
-        camera_offset.y
-      ]);
+      if (x % 3 == 0) {
+        // Set new height
+        // TODO: Use the xxhash to actually stash the values for this generation
+        height = random([23, 22, 21, 20, 19, 18, 17, 16, 15, 14])
+      }
+      if (y <= height) {
+        tiletype = 1;
+      }
+      else if (y == 24) {
+        tiletype = 2
+      }
+      else if (0.5 > random()) {
+        tiletype = 3 // Draw light off window
+      }
+      else {
+        // draw light on window
+        tiletype = 4
+      }
+
+      drawTile([x + world_offset_background.x, y], [camera_offset.x, y], tiletype, concrete);
+      drawTile([x + world_offset_midground.x, y], [camera_offset.x, y], tiletype, concrete);
+      drawTile([x + world_offset_foreground.x, y], [camera_offset.x, y], tiletype, concrete);
     }
   }
-
-  describeMouseTile(world_pos, [camera_offset.x, camera_offset.y]);
 
   if (window.p3_drawAfter) {
     window.p3_drawAfter();
@@ -111,16 +161,6 @@ function screenToWorld([screen_x, screen_y], [camera_x, camera_y]) {
   return [Math.round(screen_x), Math.round(screen_y)];
 }
 
-// Display a discription of the tile at world_x, world_y.
-function describeMouseTile([world_x, world_y], [camera_x, camera_y]) {
-  if (window.p3_drawSelectedTile) {
-    push()
-    translate(world_x * tile_width - camera_x, world_y * tile_height - camera_y);
-    window.p3_drawSelectedTile(world_x, world_y, camera_x, camera_y);
-    pop()
-  }
-}
-
 function drawTileDescription([world_x, world_y], [screen_x, screen_y]) {
   push();
   translate(screen_x, screen_y);
@@ -131,11 +171,11 @@ function drawTileDescription([world_x, world_y], [screen_x, screen_y]) {
 }
 
 // Draw a tile, mostly by calling the user's drawing code.
-function drawTile([world_x, world_y], [camera_x, camera_y]) {
+function drawTile([world_x, world_y], [camera_x, camera_y], tiletype, color) {
   push();
   translate(world_x * tile_width - camera_x, world_y * tile_height - camera_y);
   if (window.p3_drawTile) {
-    window.p3_drawTile(world_x, world_y);
+    window.p3_drawTile(world_x, world_y, tiletype, color);
   }
   pop();
 }
