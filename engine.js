@@ -16,12 +16,29 @@ let concrete_Noon;
 let sky;
 let sky_Midnight;
 let sky_Day;
+let window_color;
+let window_Midnight;
+let window_day;
+let window_off_color;
+let window_off_day;
+let window_off_Midnight;
+
+let gradiantRatio
 
 function setup() {
+  window_color = color(0);
+  window_off_color = color(0);
+  sky = color(0);
+  concrete = color(0);
+
   sky_Day = color(145, 213, 255);
   sky_Midnight = color(16, 3, 28);
-  concrete_Midnight = color(18, 14, 30)
-  concrete_Noon = color(100, 100, 100)
+  concrete_Midnight = color(18, 14, 30);
+  concrete_Noon = color(100, 100, 100);
+  window_Midnight = color(255, 255, 0);
+  window_day = color(253, 253, 150);
+  window_off_Midnight = color(12, 8, 24);
+  window_off_day = color(80, 80, 100);
 
   camera_offset = new p5.Vector(0, 0);
   camera_velocity = new p5.Vector(0, 0);
@@ -43,7 +60,7 @@ function setup() {
     rebuildWorld(input.value());
   });
 
-  createP("Arrow keys scroll. Clicking changes tiles.").parent("container");
+  createP("Left and right keys scroll.").parent("container");
 
   rebuildWorld(input.value());
 }
@@ -66,18 +83,21 @@ function cameraToWorldOffset([camera_x, camera_y]) {
 
 function drawTime(time) {
   // Afternoon handler
-  let gradiantRatio;
   if (time[0] >= 12) {
     time[0] -= 12
     gradiantRatio = (time[0] * 60 + time[1]) / 719 // 719 is the maximum value the numerator can produce
     concrete = lerpColor(concrete_Noon, concrete_Midnight, gradiantRatio);
     sky = lerpColor(sky_Day, sky_Midnight, gradiantRatio);
+    window_color = lerpColor(window_day, window_Midnight, gradiantRatio);
+    window_off_color = lerpColor(window_off_day, window_off_Midnight, gradiantRatio);
   }
   // Morning handler
   else{
     gradiantRatio = (time[0] * 60 + time[1]) / 719 // 719 is the maximum value the numerator can produce
     concrete = lerpColor(concrete_Midnight, concrete_Noon, gradiantRatio);
     sky = lerpColor(sky_Midnight, sky_Day, gradiantRatio);
+    window_color = lerpColor(window_Midnight, window_day, gradiantRatio);
+    window_off_color = lerpColor(window_off_Midnight, window_off_day, gradiantRatio);
   }
 
   return sky;
@@ -123,18 +143,21 @@ function draw() {
 
   for (let y = 0; y < tile_rows; y++) {
     for (let x = 0; x < tile_columns; x++) {
-      if (x % 3 == 0) {
+      let windowchance = 100 * gradiantRatio
+      if (windowchance > 80) windowchance = 80;
+      if (windowchance < 5) windowchance = 5;
+      if (x % 7 == 0) {
         // Set new height
         // TODO: Use the xxhash to actually stash the values for this generation
-        height = random([23, 22, 21, 20, 19, 18, 17, 16, 15, 14])
+        height = random([21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10])
       }
       if (y <= height) {
         tiletype = 1;
       }
-      else if (y == 24) {
+      else if (y >= 22) {
         tiletype = 2
       }
-      else if (0.5 > random()) {
+      else if (windowchance > random(1, 100)) {
         tiletype = 3 // Draw light off window
       }
       else {
@@ -142,9 +165,9 @@ function draw() {
         tiletype = 4
       }
 
-      drawTile([x + world_offset_background.x, y], [camera_offset.x, y], tiletype, concrete);
-      drawTile([x + world_offset_midground.x, y], [camera_offset.x, y], tiletype, concrete);
-      drawTile([x + world_offset_foreground.x, y], [camera_offset.x, y], tiletype, concrete);
+      //drawTile([x + world_offset_background.x, y], [camera_offset.x, camera_offset.y], tiletype, concrete, window_color, window_off_color);
+      //drawTile([x + world_offset_midground.x, y], [camera_offset.x, camera_offset.y], tiletype, concrete, window_color, window_off_color);
+      drawTile([x + world_offset_foreground.x, y], [camera_offset.x, camera_offset.y], tiletype, concrete, window_color, window_off_color);
     }
   }
 
@@ -171,11 +194,11 @@ function drawTileDescription([world_x, world_y], [screen_x, screen_y]) {
 }
 
 // Draw a tile, mostly by calling the user's drawing code.
-function drawTile([world_x, world_y], [camera_x, camera_y], tiletype, color) {
+function drawTile([world_x, world_y], [camera_x, camera_y], tiletype, color, windowColor, window_no_color) {
   push();
   translate(world_x * tile_width - camera_x, world_y * tile_height - camera_y);
   if (window.p3_drawTile) {
-    window.p3_drawTile(world_x, world_y, tiletype, color);
+    window.p3_drawTile(world_x, world_y, tiletype, color, windowColor, window_no_color);
   }
   pop();
 }
