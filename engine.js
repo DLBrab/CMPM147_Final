@@ -23,7 +23,9 @@ let window_off_color;
 let window_off_day;
 let window_off_Midnight;
 
-let gradiantRatio
+let gradiantRatio;
+
+let timeOfDay;
 
 function setup() {
   window_color = color(0);
@@ -51,18 +53,35 @@ function setup() {
   }
 
   let label = createP();
-  label.html("World key: ");
+  label.html("World Key: ");
   label.parent("container");
 
   let input = createInput("cm147");
+  
   input.parent(label);
   input.input(() => {
     rebuildWorld(input.value());
   });
 
-  createP("Left and right keys scroll.").parent("container");
+  let timeInput = createInput("")
+  timeInput.input(() => {
+    timeOfDay = parseTime(timeInput.value());
+  })
+  timeOfDay = [-1, -1];
+
+  createP("Right key scrolls the world.").parent("container");
 
   rebuildWorld(input.value());
+}
+
+function hash (key) {
+  randomSeed(key)
+  let hashval = 0
+  for (let i = 0; i < 5; ++i) {
+    hashval += 3 * random()
+  }
+  hashval = Math.floor(hashval)
+  return hashval
 }
 
 function rebuildWorld(key) {
@@ -81,11 +100,21 @@ function cameraToWorldOffset([camera_x, camera_y]) {
   return { x: Math.round(world_x), y: Math.round(world_y) };
 }
 
+function parseTime(t) {
+  var time = t.toString().match(/(\d+)(?::(\d\d))?\s*(p?)/i);
+  if (!time) {
+    return [-1, -1];
+  }
+  console.log(time[1])
+  return [time[1], time[2]];
+}
+
 function drawTime(time) {
   // Afternoon handler
+  console.log(time)
   if (time[0] >= 12) {
-    time[0] -= 12
-    gradiantRatio = (time[0] * 60 + time[1]) / 719 // 719 is the maximum value the numerator can produce
+    let tempTime = time[0] - 12
+    gradiantRatio = (tempTime * 60 + time[1]) / 719 // 719 is the maximum value the numerator can produce
     concrete = lerpColor(concrete_Noon, concrete_Midnight, gradiantRatio);
     sky = lerpColor(sky_Day, sky_Midnight, gradiantRatio);
     window_color = lerpColor(window_day, window_Midnight, gradiantRatio);
@@ -98,6 +127,7 @@ function drawTime(time) {
     sky = lerpColor(sky_Midnight, sky_Day, gradiantRatio);
     window_color = lerpColor(window_Midnight, window_day, gradiantRatio);
     window_off_color = lerpColor(window_off_Midnight, window_off_day, gradiantRatio);
+    gradiantRatio = 1 / gradiantRatio;
   }
 
   return sky;
@@ -105,11 +135,11 @@ function drawTime(time) {
 
 function draw() {
   // Keyboard controls!
-  if (keyIsDown(LEFT_ARROW)) {
-    camera_velocity.x -= 1;
-  }
   if (keyIsDown(RIGHT_ARROW)) {
     camera_velocity.x += 1;
+  }
+  if (keyIsDown(LEFT_ARROW)) {
+    camera_velocity.x -= 1;
   }
 
   let camera_delta = new p5.Vector(0, 0);
@@ -125,36 +155,38 @@ function draw() {
     [camera_offset.x, camera_offset.y]
   );
 
-  let world_offset_foreground = cameraToWorldOffset([camera_offset.x/3, camera_offset.y/3]);
-  let world_offset_midground = cameraToWorldOffset([camera_offset.x/2, camera_offset.y/2]);
-  let world_offset_background = cameraToWorldOffset([2*camera_offset.x/3, 2*camera_offset.y/3]);
+  let world_offset_background = cameraToWorldOffset([2*camera_offset.x/3, camera_offset.y]);
+  let world_offset = cameraToWorldOffset([camera_offset.x, camera_offset.y])
+  let time;
 
-  
-
-  if (window.p3_drawBefore) {
-    window.p3_drawBefore();
+  if (timeOfDay[0] == -1) {
+    time = [hour(), minute()]
   }
-
-  let height;
-  let tiletype;
-  let time = [hour(), minute()]
+  else {
+    time = timeOfDay
+  }
   drawTime(time)
   background(sky); // Draws the background with the color of the sky set by the drawTime function
 
-  for (let y = 0; y < tile_rows; y++) {
-    for (let x = 0; x < tile_columns; x++) {
-      let windowchance = 100 * gradiantRatio
+  for (let i = world_offset.x; i < world_offset.x + tile_columns; i += 7){
+    drawBuilding(world_offset_background.x + i, world_offset.x + i);
+  }
+}
+
+function drawBuilding(x, offset) {
+  let height = hash(offset);
+  let tiletype;
+  let windowchance = 100 * gradiantRatio
+  //height = 5;
+
+  for (let i = 0; i < tile_rows; i++) {
+    for (let j = 0; j < 7; j++) {
       if (windowchance > 80) windowchance = 80;
       if (windowchance < 5) windowchance = 5;
-      if (x % 7 == 0) {
-        // Set new height
-        // TODO: Use the xxhash to actually stash the values for this generation
-        height = random([21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10])
-      }
-      if (y <= height) {
+      if (i <= height) {
         tiletype = 1;
       }
-      else if (y >= 22) {
+      else if (i >= 22) {
         tiletype = 2
       }
       else if (windowchance > random(1, 100)) {
@@ -167,12 +199,8 @@ function draw() {
 
       //drawTile([x + world_offset_background.x, y], [camera_offset.x, camera_offset.y], tiletype, concrete, window_color, window_off_color);
       //drawTile([x + world_offset_midground.x, y], [camera_offset.x, camera_offset.y], tiletype, concrete, window_color, window_off_color);
-      drawTile([x + world_offset_foreground.x, y], [camera_offset.x, camera_offset.y], tiletype, concrete, window_color, window_off_color);
+      drawTile([j + x, i], [camera_offset.x, camera_offset.y], tiletype, concrete, window_color, window_off_color);
     }
-  }
-
-  if (window.p3_drawAfter) {
-    window.p3_drawAfter();
   }
 }
 

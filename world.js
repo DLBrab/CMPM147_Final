@@ -37,7 +37,7 @@ function p3_tileHeight() {
 }
 
 let [tw, th] = [p3_tileWidth(), p3_tileHeight()];
-let windowRatio = 4 / 5;
+let windowRatio = 2 / 5;
 
 let clicks = {};
 
@@ -99,7 +99,7 @@ function draw_ground_level_tile(i, j, conccolor) {
 function draw_window(i, j, window_color) {
   draw_ground_level_tile(i, j);
   fill(window_color)
-  translate(i - th * windowRatio, j - tw * windowRatio);
+  translate(i * 1.1, j * 1.1);
   beginShape();
   vertex(0, 0);
   vertex(0, tw * windowRatio);
