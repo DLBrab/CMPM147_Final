@@ -24,7 +24,6 @@ let worldSeed;
 
 
 function p3_worldKeyChanged(key) {
-  worldSeed = XXH.h32(key, 0);
   noiseSeed(worldSeed);
   randomSeed(worldSeed);
 }
