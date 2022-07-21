@@ -41,11 +41,7 @@ let windowRatio = 2 / 5;
 
 let clicks = {};
 
-function p3_tileClicked(i, j) {
-  let key = [i, j];
-  clicks[key] = 1 + (clicks[key] | 0);
-  console.log(i, j);
-}
+function p3_tileClicked(i, j) {}
 
 function p3_drawBefore() {}
 
@@ -99,32 +95,13 @@ function draw_ground_level_tile(i, j, conccolor) {
 function draw_window(i, j, window_color) {
   draw_ground_level_tile(i, j);
   fill(window_color)
-  translate(i * 1.1, j * 1.1);
+  translate(1 / windowRatio, 1/ windowRatio);
   beginShape();
   vertex(0, 0);
   vertex(0, tw * windowRatio);
   vertex(th * windowRatio, tw * windowRatio);
   vertex(th * windowRatio, 0);
   endShape();
-
 }
-
-function p3_drawSelectedTile(i, j) {
-  noFill();
-  stroke(0, 255, 0, 128);
-
-  beginShape();
-  vertex(0, 0);
-  vertex(0, tw);
-  vertex(th, tw);
-  vertex(th, 0);
-  endShape(CLOSE);
-
-  noStroke();
-  fill(0);
-  text("(" + [i, j] + ")", 0, 0);
-}
-
-
 
 function p3_drawAfter() {}

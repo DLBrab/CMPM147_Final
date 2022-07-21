@@ -105,16 +105,15 @@ function parseTime(t) {
   if (!time) {
     return [-1, -1];
   }
-  console.log(time[1])
   return [time[1], time[2]];
 }
 
 function drawTime(time) {
   // Afternoon handler
-  console.log(time)
   if (time[0] >= 12) {
-    let tempTime = time[0] - 12
-    gradiantRatio = (tempTime * 60 + time[1]) / 719 // 719 is the maximum value the numerator can produce
+    let a = int(time[0] - 12) * 60
+    let b = int(time[1])
+    gradiantRatio = (a + b) / 719 // 719 is the maximum value the numerator can produce
     concrete = lerpColor(concrete_Noon, concrete_Midnight, gradiantRatio);
     sky = lerpColor(sky_Day, sky_Midnight, gradiantRatio);
     window_color = lerpColor(window_day, window_Midnight, gradiantRatio);
@@ -122,12 +121,14 @@ function drawTime(time) {
   }
   // Morning handler
   else{
-    gradiantRatio = (time[0] * 60 + time[1]) / 719 // 719 is the maximum value the numerator can produce
+    let a = int(time[0]) * 60
+    let b = int(time[1])
+    gradiantRatio = (a + b) / 719 // 719 is the maximum value the numerator can produce
     concrete = lerpColor(concrete_Midnight, concrete_Noon, gradiantRatio);
     sky = lerpColor(sky_Midnight, sky_Day, gradiantRatio);
     window_color = lerpColor(window_Midnight, window_day, gradiantRatio);
     window_off_color = lerpColor(window_off_Midnight, window_off_day, gradiantRatio);
-    gradiantRatio = 1 / gradiantRatio;
+    gradiantRatio = 1 - gradiantRatio;
   }
 
   return sky;
@@ -137,9 +138,6 @@ function draw() {
   // Keyboard controls!
   if (keyIsDown(RIGHT_ARROW)) {
     camera_velocity.x += 1;
-  }
-  if (keyIsDown(LEFT_ARROW)) {
-    camera_velocity.x -= 1;
   }
 
   let camera_delta = new p5.Vector(0, 0);
@@ -168,15 +166,27 @@ function draw() {
   drawTime(time)
   background(sky); // Draws the background with the color of the sky set by the drawTime function
 
-  for (let i = world_offset.x; i < world_offset.x + tile_columns; i += 7){
-    drawBuilding(world_offset_background.x + i, world_offset.x + i);
+  for (let i = world_offset.x / 8; i < world_offset.x + tile_columns; i += 7){
+    drawBuilding(world_offset_background.x + i, world_offset.x + i, time);
   }
 }
 
-function drawBuilding(x, offset) {
+function drawBuilding(x, offset, time) {
   let height = hash(offset);
   let tiletype;
-  let windowchance = 100 * gradiantRatio
+
+  // People turn on windows when it gets dark
+  let windowchance = 100 * gradiantRatio + 20
+
+  // People go to bed late at night. 0.9 translates roughly to 9 PM, which is where a fair number of people go to bed.
+  if (gradiantRatio > 0.5 && time[0] < 12) {
+    windowchance = 0.1
+  }
+  // People tend to wake up at around 6 AM if theyre going to bed at 9 PM. Ahhhh... the dream life qwq
+  else if (gradiantRatio > 0.9 && time[0] >= 12) {
+    windowchance = 0.1
+  }
+  // console.log(windowchance)
   //height = 5;
 
   for (let i = 0; i < tile_rows; i++) {
@@ -189,7 +199,7 @@ function drawBuilding(x, offset) {
       else if (i >= 22) {
         tiletype = 2
       }
-      else if (windowchance > random(1, 100)) {
+      else if (windowchance < random(1, 100)) {
         tiletype = 3 // Draw light off window
       }
       else {
@@ -210,15 +220,6 @@ function screenToWorld([screen_x, screen_y], [camera_x, camera_y]) {
   screen_x /= tile_width;
   screen_y /= tile_height;
   return [Math.round(screen_x), Math.round(screen_y)];
-}
-
-function drawTileDescription([world_x, world_y], [screen_x, screen_y]) {
-  push();
-  translate(screen_x, screen_y);
-  if (window.p3_drawSelectedTile) {
-    window.p3_drawSelectedTile(world_x, world_y, screen_x, screen_y);
-  }
-  pop();
 }
 
 // Draw a tile, mostly by calling the user's drawing code.
